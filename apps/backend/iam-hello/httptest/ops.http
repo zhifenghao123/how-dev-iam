@@ -1,0 +1,14 @@
+### 健康检查（被 LoggerWithConfig 跳过日志，亦被 AccessLog 跳过）
+GET http://127.0.0.1:8000/healthCheck/status
+
+###
+
+### Metrics 独立端口
+GET http://127.0.0.1:9090/metrics
+
+###
+
+### pprof 独立端口
+GET http://127.0.0.1:6060/debug/pprof/
+
+###

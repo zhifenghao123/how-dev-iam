@@ -1,0 +1,19 @@
+{
+  "log_level": "info",
+  "http_port": 8003,
+  "grpc_port": 0,
+  "metrics_port": 9093,
+  "service_name": "iam-authv",
+  "enable_swagger": false,
+  "log": {
+    "dir": "log",
+    "file": "iam-authv.log",
+    "req_file": "iam-authv-req.log",
+    "to_stdout": true
+  },
+  "trace": {
+    "enabled": false,
+    "endpoint": "",
+    "name": "iam-authv"
+  }
+}

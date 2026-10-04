@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "iam-front.fullname" . }}-nginx
+  labels:
+    {{- include "iam-front.labels" . | nindent 4 }}
+data:
+  # 覆盖默认 default.conf，实现 SPA fallback + /api 反代 iam-account
+  default.conf: |
+    server {
+      listen       80;
+      server_name  _;
+
+      # gzip
+      gzip on;
+      gzip_types text/plain text/css application/json application/javascript
+                 application/x-javascript text/xml application/xml
+                 application/xml+rss text/javascript image/svg+xml;
+      gzip_min_length 1024;
+
+      root   /usr/share/nginx/html;
+      index  index.html;
+
+      # 反向代理后端：与前端约定 baseURL=/api；
+      # 后端 gin 路由本身就带 /api 前缀（route.Register 中 engine.Group("/api")），
+      # 因此 proxy_pass 末尾不能带 /，需保留 /api/ 前缀原样透传。
+      location /api/ {
+        proxy_pass         http://{{ .Values.backendService }}:{{ .Values.backendPort }};
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+      }
+
+      # SPA 前端路由 fallback
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+
+      # 前端自己的健康检查（供 k8s probe 使用）
+      location = /healthz {
+        access_log off;
+        return 200 "ok";
+        add_header Content-Type text/plain;
+      }
+    }

@@ -1,0 +1,73 @@
+# =============================================================================
+# k8s-infra 根 values.yaml
+# -----------------------------------------------------------------------------
+# 说明：
+#   1) 本 chart 聚合平台级基础设施资源。
+#   2) 通过 dependencies 引入官方 ingress-nginx；对应 sub-values 在
+#      "ingress-nginx:" 段落下，会被 helm 自动透传给子 chart。
+#   3) 本 chart 自己定义的资源（如 iam 平台的 Ingress）放在 "iamIngress:" 段。
+# =============================================================================
+
+# =============================================================================
+# ingress-nginx controller
+# -----------------------------------------------------------------------------
+# 完整参数请见 https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml
+# 这里只覆盖本地开发场景的必要项。
+# =============================================================================
+ingress-nginx:
+  # 是否安装 ingress-nginx；condition 在 Chart.yaml 中对应
+  enabled: true
+
+  controller:
+    # 本地开发通常单副本即可
+    replicaCount: 1
+    # 让 controller 处理所有 IngressClass=nginx 的 Ingress
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: true
+    # 默认 LoadBalancer；k3s 的 klipper-lb 会自动把 80/443 绑到节点端口。
+    # 如果宿主机 80 被占用，可以在 install 时覆盖为 NodePort：
+    #   --set ingress-nginx.controller.service.type=NodePort
+    service:
+      type: LoadBalancer
+    # 减少启动资源开销
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+    # 关闭 admissionWebhooks 可简化本地部署（可选）
+    admissionWebhooks:
+      enabled: true
+
+# =============================================================================
+# iam 平台对外 Ingress
+# -----------------------------------------------------------------------------
+# 该 Ingress 属于"基础设施"层：把 iam.local 的流量投给 iam ns 下的 iam-front。
+# 之所以放在 k8s-infra 而非 iam chart 内，是因为它涉及 IngressClass、host
+# 等平台级配置，跟业务解耦更清爽。
+# =============================================================================
+iamIngress:
+  enabled: true
+
+  # Ingress 资源名（在 namespace 内唯一）
+  name: iam
+
+  # 部署到哪个 namespace（iam-front Service 所在的 ns）
+  namespace: iam
+
+  # IngressClass；要与上面 ingress-nginx.controller.ingressClassResource.name 一致
+  className: nginx
+
+  host: iam.local
+
+  # 后端 Service（与 iam chart 中 iam-front 的 Service 名保持一致）
+  frontServiceName: iam-front
+  frontServicePort: 80
+
+  annotations: {}
+  #  nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+
+  tls:
+    enabled: false
+    secretName: ""

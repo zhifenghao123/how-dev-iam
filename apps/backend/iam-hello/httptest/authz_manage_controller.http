@@ -1,0 +1,4 @@
+### Authz：支持的授权方式列表
+GET http://127.0.0.1:8000/api/authz/supportTypes
+
+###

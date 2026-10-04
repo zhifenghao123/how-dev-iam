@@ -1,0 +1,28 @@
+# mysql 子 chart 默认值。
+# 说明：umbrella chart (middleware) 通过 mysql.* 覆盖这里的值；
+# 子 chart 本地默认值仅用于单独 helm install charts/mysql 时的兜底。
+
+enabled: true
+
+image:
+  repository: mysql
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+
+rootPassword: "IamR00tPwd#2026"
+
+database: "iam_account"
+
+extraDatabases: []
+
+service:
+  type: ClusterIP
+  port: 3306
+
+persistence:
+  enabled: false
+  size: 5Gi
+  # storageClass: ""
+  # accessMode: ReadWriteOnce
+
+resources: {}

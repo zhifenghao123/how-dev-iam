@@ -1,0 +1,76 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "iam-hello 服务接口文档（脚手架示例）。\n仅在 config 中 enable_swagger=true 时暴露 /swagger/*any。",
+        "title": "iam-hello API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "127.0.0.1:8000",
+    "basePath": "/api",
+    "paths": {
+        "/authn/supportTypes": {
+            "get": {
+                "description": "返回当前服务内置支持的认证方式（password / sms / oauth2 等）。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authn"
+                ],
+                "summary": "支持的认证方式列表",
+                "responses": {
+                    "200": {
+                        "description": "包含 types 数组，每项含 code / name / description",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/authz/supportTypes": {
+            "get": {
+                "description": "返回当前服务内置支持的授权方式（rbac / abac / acl / rebac 等）。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authz"
+                ],
+                "summary": "支持的授权方式列表",
+                "responses": {
+                    "200": {
+                        "description": "包含 types 数组，每项含 code / name / description",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "iam-account.fullname" . }}
+  labels:
+    {{- include "iam-account.labels" . | nindent 4 }}
+data:
+  # config.json 结构必须与 apps/backend/iam-account/logic/config/config.go 的
+  # Detail 结构体完全对齐；不匹配的字段会被 json.Unmarshal 忽略，
+  # 但必填字段（如 mysql.dsn）为空时启动会 fail-fast。
+  config.json: |
+    {
+      "log_level": "{{ .Values.config.logLevel }}",
+      "http_port": {{ .Values.service.httpPort }},
+      "grpc_port": {{ .Values.service.grpcPort | default 0 }},
+      "metrics_port": {{ .Values.service.metricsPort }},
+      "service_name": "{{ .Values.config.serviceName }}",
+      "enable_swagger": {{ .Values.config.enableSwagger }},
+      "log": {
+        "dir": "{{ .Values.config.log.dir }}",
+        "file": "{{ .Values.config.log.file }}",
+        "req_file": "{{ .Values.config.log.reqFile }}",
+        "to_stdout": {{ .Values.config.log.toStdout }}
+      },
+      "trace": {
+        "enabled": {{ .Values.config.trace.enabled }},
+        "endpoint": "{{ .Values.config.trace.endpoint }}",
+        "name": "{{ .Values.config.trace.name }}"
+      },
+      "mysql": {
+        "dsn": "{{ include "iam-account.mysqlDSN" . }}",
+        "max_open_conns": {{ .Values.config.mysql.maxOpenConns }},
+        "max_idle_conns": {{ .Values.config.mysql.maxIdleConns }},
+        "conn_max_life_secs": {{ .Values.config.mysql.connMaxLifeSecs }}
+      },
+      "account": {
+        "password_algo": "{{ .Values.config.passwordAlgo }}",
+        "verify_code_ttl_seconds": {{ .Values.config.verifyCodeTTL }},
+        "invitation_ttl_seconds": {{ .Values.config.invitationTTL }},
+        "verify_code_max_retries": {{ .Values.config.verifyCodeMaxRetries }}
+      }
+    }

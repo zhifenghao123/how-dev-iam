@@ -1,0 +1,19 @@
+{
+  "log_level": "info",
+  "http_port": 8004,
+  "grpc_port": 0,
+  "metrics_port": 9094,
+  "service_name": "iam-authz",
+  "enable_swagger": false,
+  "log": {
+    "dir": "log",
+    "file": "iam-authz.log",
+    "req_file": "iam-authz-req.log",
+    "to_stdout": true
+  },
+  "trace": {
+    "enabled": false,
+    "endpoint": "",
+    "name": "iam-authz"
+  }
+}

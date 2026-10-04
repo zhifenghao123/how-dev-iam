@@ -1,0 +1,4 @@
+# helm dependency update 会把远端 chart 下载到本目录，无需入库
+*.tgz
+# 子 chart 目录（Chart.lock 保留）
+charts/

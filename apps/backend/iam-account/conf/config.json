@@ -1,0 +1,31 @@
+{
+  "log_level": "info",
+  "http_port": 8001,
+  "grpc_port": 0,
+  "metrics_port": 9091,
+  "service_name": "iam-account",
+  "enable_swagger": false,
+  "log": {
+    "dir": "log",
+    "file": "iam-account.log",
+    "req_file": "iam-account-req.log",
+    "to_stdout": true
+  },
+  "trace": {
+    "enabled": false,
+    "endpoint": "",
+    "name": "iam-account"
+  },
+  "mysql": {
+    "dsn": "root:IamR00tPwd#2026@tcp(127.0.0.1:3306)/iam_account?charset=utf8mb4&parseTime=true&loc=Local&timeout=5s",
+    "max_open_conns": 100,
+    "max_idle_conns": 20,
+    "conn_max_life_secs": 3600
+  },
+  "account": {
+    "password_algo": "bcrypt",
+    "verify_code_ttl_seconds": 300,
+    "invitation_ttl_seconds": 604800,
+    "verify_code_max_retries": 5
+  }
+}

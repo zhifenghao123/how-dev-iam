@@ -1,0 +1,15 @@
+{{- if .Values.enabled }}
+# ---------- 初始化 SQL：创建默认业务库 + 额外库 ----------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mysql.fullname" . }}-init
+  labels:
+    {{- include "mysql.labels" . | nindent 4 }}
+data:
+  01-create-databases.sql: |
+    CREATE DATABASE IF NOT EXISTS `{{ .Values.database }}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    {{- range .Values.extraDatabases }}
+    CREATE DATABASE IF NOT EXISTS `{{ . }}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    {{- end }}
+{{- end }}

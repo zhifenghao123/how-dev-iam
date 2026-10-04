@@ -1,0 +1,45 @@
+# =============================================================================
+# how-dev-iam init-jobs
+# -----------------------------------------------------------------------------
+# 说明：
+#   1) 本 chart 内置多个一次性初始化任务，通过顶层子开关 enabled 控制。
+#   2) MySQL 相关的 DDL 脚本源在本目录 ddl/<service>/ 下；模板通过
+#      .Files.Glob 打包成 ConfigMap，由 Job 挂载并逐个执行。
+#   3) 服务名默认使用平台内部约定（如 middleware-mysql）；如中间件在其他
+#      namespace，请把 host 改为 FQDN。
+# =============================================================================
+
+# ---------- 全局 ----------
+global:
+  env: dev
+
+# ---------- MySQL Schema Job ----------
+mysqlSchema:
+  enabled: true
+
+  # 客户端镜像（自带 mysql 命令）
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+
+  # 连接目标
+  mysql:
+    host: "middleware-mysql"
+    port: 3306
+    user: "root"
+    password: "IamR00tPwd#2026"
+
+  # 要初始化的 service 列表；每一项对应 ddl/<name>/ 目录里的所有 .sql 会被执行。
+  # database 是执行 SQL 前先 USE 的数据库。
+  services:
+    - name: iam-account
+      database: iam_account
+
+  # Job 的运行行为
+  backoffLimit: 3
+  # helm hook：install / upgrade 时执行；执行成功后自动 GC
+  hooks:
+    enabled: true
+    weight: "-5"
+    deletePolicy: "before-hook-creation,hook-succeeded"

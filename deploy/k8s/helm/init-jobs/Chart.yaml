@@ -1,0 +1,10 @@
+apiVersion: v2
+name: how-dev-iam-init-jobs
+description: |
+  Helm chart of one-shot initialization jobs for how-dev-iam.
+  Currently includes:
+    - mysql-schema: apply DDL scripts of each backend service to MySQL
+      (files are shipped as a ConfigMap and executed via mysql client).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

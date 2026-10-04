@@ -1,0 +1,84 @@
+# =============================================================================
+# how-dev-iam middleware 根 values.yaml
+# -----------------------------------------------------------------------------
+# 说明：
+#   1) global.* 会被所有子 chart 共享。
+#   2) 每个子 chart 独立一节（如 mysql:、redis:），通过 <chartName>.enabled
+#      对应 Chart.yaml 中的 condition，用来开关子 chart。
+#   3) 中间件默认以 ClusterIP 暴露，服务名规范：middleware-<component>。
+# =============================================================================
+
+# ---------- 全局配置（会被 Helm 自动注入到所有子 chart）----------
+global:
+  # 部署环境，可选：dev / test / staging / prod
+  env: dev
+  # 命名空间（信息性字段；实际 namespace 通过 helm install -n 指定）
+  namespace: iam-middleware
+  # 服务名前缀，所有中间件 Service 会以此为前缀（middleware-mysql、middleware-redis）
+  namePrefix: middleware
+
+
+# =============================================================================
+# MySQL
+# =============================================================================
+mysql:
+  enabled: true
+
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+
+  # root 账号密码（本地开发默认值，请在生产环境覆盖）
+  rootPassword: "IamR00tPwd#2026"
+
+  # 初始化时自动创建的默认业务库
+  database: "iam_account"
+
+  # 需要额外初始化的库名列表；模板会在 initdb 里 CREATE DATABASE IF NOT EXISTS ...
+  extraDatabases:
+    - iam_authn
+    - iam_authz
+
+  service:
+    type: ClusterIP
+    port: 3306
+
+  persistence:
+    enabled: false
+    size: 5Gi
+    # storageClass: ""
+    # accessMode: ReadWriteOnce
+
+  resources: {}
+  #  limits:
+  #    cpu: 1000m
+  #    memory: 1Gi
+  #  requests:
+  #    cpu: 200m
+  #    memory: 512Mi
+
+
+# =============================================================================
+# Redis
+# =============================================================================
+redis:
+  enabled: true
+
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+
+  # 访问密码（本地开发默认值，请在生产环境覆盖）
+  password: "IamR3d1sPwd#2026"
+
+  service:
+    type: ClusterIP
+    port: 6379
+
+  persistence:
+    enabled: false
+    size: 2Gi
+
+  resources: {}

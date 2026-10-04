@@ -1,0 +1,34 @@
+apiVersion: v2
+name: iam-middleware
+
+description: |
+  Helm umbrella chart for how-dev-iam middleware.
+  Aggregates infrastructure middleware (MySQL, Redis, ...) that the IAM
+  platform depends on. Intended for local / dev / test deployments;
+  production environments should use externally managed services instead.
+
+type: application
+
+# Chart 版本：每次调整 Chart 结构或子 chart 版本时需同步递增
+version: 0.1.0
+
+# 中间件默认应用版本（对应各中间件默认镜像 tag），可在 values.yaml 中被覆盖
+appVersion: "1.0.0"
+
+# =============================================================================
+# 子 chart 依赖：子 chart 目录直接放在 charts/ 下，Helm 会自动识别。
+# 声明 dependencies 用于 helm lint / helm dependency update / condition 开关。
+# =============================================================================
+dependencies:
+  - name: mysql
+    version: 0.1.0
+    repository: "file://charts/mysql"
+    condition: mysql.enabled
+    tags:
+      - datastore
+  - name: redis
+    version: 0.1.0
+    repository: "file://charts/redis"
+    condition: redis.enabled
+    tags:
+      - datastore

@@ -1,0 +1,30 @@
+{{- if .Values.mysqlSchema.enabled }}
+{{- range $svc := .Values.mysqlSchema.services }}
+---
+# ---------- ConfigMap：把 ddl/<service>/*.sql 打包 ----------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "init-jobs.mysqlSchemaName" (dict "service" $svc.name) }}
+  labels:
+    {{- include "init-jobs.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: mysql-schema
+    iam.service: {{ $svc.name }}
+  {{- if $.Values.mysqlSchema.hooks.enabled }}
+  annotations:
+    # 注意：ConfigMap 与 Job 必须放在**同一个 hook 阶段**（都是 post-install/post-upgrade），
+    # 通过更小的 hook-weight 保证 ConfigMap 先创建。若把 ConfigMap 放在 pre-install，
+    # helm 的 hook-succeeded 删除策略会在 pre-install 阶段结束后立即删掉 ConfigMap，
+    # 后续 Job Pod 挂载时会报 `configmap not found`，最终 job 5 分钟超时。
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": {{ $.Values.mysqlSchema.hooks.deletePolicy }}
+  {{- end }}
+data:
+  {{- /* 关键：把 ddl/<service>/*.sql 全部塞进本 ConfigMap 的 data. */}}
+  {{- range $path, $bytes := $.Files.Glob (printf "ddl/%s/*.sql" $svc.name) }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

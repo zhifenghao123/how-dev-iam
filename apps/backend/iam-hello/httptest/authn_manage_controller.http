@@ -1,0 +1,10 @@
+### Authn：支持的认证方式列表
+GET http://127.0.0.1:8000/api/authn/supportTypes
+
+###
+
+### Authn：支持的认证方式列表 + Request-ID 透传
+GET http://127.0.0.1:8000/api/authn/supportTypes
+X-Request-Id: my-trace-001
+
+###

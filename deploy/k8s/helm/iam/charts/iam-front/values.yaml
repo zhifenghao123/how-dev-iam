@@ -1,0 +1,41 @@
+# =============================================================================
+# iam-front 子 chart 默认值
+# -----------------------------------------------------------------------------
+# 说明：
+#   1) 前端构建产物已在容器内 /usr/share/nginx/html；nginx 负责静态资源，
+#      并把 /api/** 反代到 iam-account 后端。
+#   2) 后端 Service 名 / 端口由 umbrella chart 的 iam-front.backendService /
+#      iam-front.backendPort 注入。
+# =============================================================================
+
+enabled: true
+
+replicaCount: 1
+
+image:
+  # 若 repository 留空，模板会拼接
+  #   <global.image.registry>/<global.image.repository>/iam-front
+  repository: ""
+  tag: ""
+  pullPolicy: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+# 反向代理目标（backendService: 同 namespace 下 iam-account 的 Service 名）
+# 通常由 umbrella chart 的 iam-front.backendService / iam-front.backendPort 覆盖。
+backendService: "iam-account"
+backendPort: 8001
+
+resources: {}
+#  limits:
+#    cpu: 200m
+#    memory: 128Mi
+#  requests:
+#    cpu: 50m
+#    memory: 64Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

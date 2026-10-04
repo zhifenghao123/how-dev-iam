@@ -1,0 +1,103 @@
+# =============================================================================
+# how-dev-iam 平台根 values.yaml
+# -----------------------------------------------------------------------------
+# 说明：
+#   1) global.* 会被所有子 chart 共享（Helm 内置行为），用于统一配置镜像仓库、
+#      镜像拉取策略、命名空间、日志级别、追踪等平台级参数。
+#   2) 每个子 chart 独立一节（如 iam-account:），通过 <chartName>.enabled
+#      对应 Chart.yaml 中的 condition，用来开关子 chart。
+#   3) 端口约定（与各服务 conf/config.json 保持一致）：
+#        http_port    : 8001    对外 HTTP API（iam-account）
+#        metrics_port : 9091    Prometheus 指标（iam-account）
+#        grpc_port    : 0       暂不启用 gRPC（iam-account）
+#        pprof_port   : 6061    pprof 调试端口（iam-account main.go 默认）
+#   4) 中间件（mysql/redis）默认由本 workspace 下的 middleware chart 提供，
+#      服务名规则：middleware-mysql、middleware-redis，安装在 iam-middleware
+#      namespace 下。iam 命名空间内的 pod 通过 FQDN 访问：
+#        middleware-mysql.iam-middleware.svc.cluster.local
+#   5) 镜像仓库默认使用本地私有 registry（Mac 上通过 how-dev-cloud-native
+#      项目里的 install.sh 部署）。
+#      - 宿主机推送地址：localhost:5000
+#      - k8s 节点拉取地址：host.docker.internal:5000
+#        （Colima 内置解析到宿主机 192.168.5.2；k3s 通过 cri-dockerd 用 VM
+#         内 docker daemon 拉镜像，故需在 daemon.json 中加入 insecure-registry：
+#          "insecure-registries": ["host.docker.internal:5000"]）
+# =============================================================================
+
+# -- 镜像仓库地址（node 侧拉取用，host.docker.internal 是 Colima VM 内解析）
+imageRegistry: &imageRegistry 'host.docker.internal:5000'
+
+# ---------- 全局配置（会被 Helm 自动注入到所有子 chart）----------
+global:
+  # 部署环境，可选：dev / test / staging / prod
+  env: dev
+
+  # 平台统一命名空间；子 chart 可通过 .Values.global.namespace 读取
+  namespace: iam
+
+  # 镜像仓库设置（子 chart 通过 image.registry / image.repository 组合使用）
+  # 最终镜像地址：<registry>/<repository>/<service>:<tag>
+  # 例：host.docker.internal:5000/how-dev-iam/iam-account:local
+  image:
+    registry: *imageRegistry
+    repository: how-dev-iam
+    # tag 为空时子 chart 会回退到 .Chart.AppVersion；本地开发建议显式指定
+    tag: "local"
+    # 节点侧 docker daemon 已通过 insecure-registries 放行本地 http registry；
+    # 但由于 registry 开启了 Basic Auth，pod 拉镜像仍需带凭据 → 通过
+    # imagePullSecrets 引用 Secret。Secret 由 deploy-iam.sh 在 iam ns
+    # 下动态创建/更新（默认名 image-credentials），Chart 内不写死。
+    pullPolicy: IfNotPresent
+  # 默认引用 image-credentials（部署脚本会自动创建）；
+  # 如自定义 secret 名，通过 helm --set global.imagePullSecrets[0].name=xxx 覆盖。
+  imagePullSecrets:
+    - name: image-credentials
+
+  # -- 中间件连接配置
+  # host 使用 FQDN，因为 middleware 与 iam 部署在不同 namespace。
+  config:
+    mysql:
+      host: 'middleware-mysql.iam-middleware.svc.cluster.local'
+      port: 3306
+      user: 'root'
+      password: 'IamR00tPwd#2026'
+      database: 'iam_account'
+    # redis 目前 iam-account 未使用；保留配置，方便后续 iam-authn 等服务接入
+    redis:
+      host: 'middleware-redis.iam-middleware.svc.cluster.local'
+      port: 6379
+      password: 'IamR3d1sPwd#2026'
+      db: 0
+
+# =============================================================================
+# 说明：Ingress / 域名等平台对外暴露配置已迁移至独立的
+#   deploy/k8s/helm/k8s-infra chart（"基础公共组件"），本 chart 不再包含
+#   Ingress 资源。若需要修改对外域名，请调整 k8s-infra 的 iamIngress.host。
+# =============================================================================
+
+# =============================================================================
+# 子 chart 默认覆盖值
+# =============================================================================
+
+iam-account:
+  enabled: true
+  # 使用独立的业务库（会覆盖 global.config.mysql.database）
+  database: iam_account
+  # iam-account 目前未使用 redis，保留字段占位
+  redisDB: 0
+
+iam-authn:
+  enabled: false
+iam-authv:
+  enabled: false
+iam-authz:
+  enabled: false
+
+# =============================================================================
+# 前端
+# =============================================================================
+iam-front:
+  enabled: true
+  # 后端 Service 名（与 iam-account chart 的 fullname 一致）
+  backendService: iam-account
+  backendPort: 8001

@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "iam-account.fullname" . }}
+  labels:
+    {{- include "iam-account.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "iam-account.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "iam-account.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.metricsPort }}"
+        prometheus.io/path: "/metrics"
+        # 配置变更时触发 rolling update
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Dockerfile 以 uid=10001 (iam) 非 root 运行；把 pod volume 的属主组
+      # 设为同 gid，确保下面 emptyDir（挂载 /var/log/iam-account）可写。
+      securityContext:
+        fsGroup: 10001
+      containers:
+        - name: iam-account
+          image: {{ include "iam-account.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - "-config"
+            - "/config/config.json"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.httpPort }}
+              protocol: TCP
+            {{- if and .Values.service.grpcPort (gt (int .Values.service.grpcPort) 0) }}
+            - name: grpc
+              containerPort: {{ .Values.service.grpcPort }}
+              protocol: TCP
+            {{- end }}
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+          env:
+            - name: APP_ENV
+              value: {{ .Values.global.env | default "dev" | quote }}
+          # 健康检查路径与 apps/backend/iam-account/logic/route/router.go 保持一致
+          readinessProbe:
+            httpGet:
+              path: /healthCheck/status
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthCheck/status
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.json
+              subPath: config.json
+            # 日志目录：与 values.yaml 里 config.log.dir 的路径保持一致。
+            # 采用 emptyDir 令 iam 用户可写；pod 重启日志会丢失，
+            # 本地开发可接受（to_stdout=true 已双写 stdout，不会丢）。
+            - name: log
+              mountPath: {{ .Values.config.log.dir | quote }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "iam-account.fullname" . }}
+        - name: log
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

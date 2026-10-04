@@ -1,0 +1,77 @@
+{{- if .Values.mysqlSchema.enabled }}
+{{- range $svc := .Values.mysqlSchema.services }}
+---
+# ---------- Job：执行 ConfigMap 里的 SQL ----------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "init-jobs.mysqlSchemaName" (dict "service" $svc.name) }}
+  labels:
+    {{- include "init-jobs.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: mysql-schema
+    iam.service: {{ $svc.name }}
+  {{- if $.Values.mysqlSchema.hooks.enabled }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": {{ $.Values.mysqlSchema.hooks.deletePolicy }}
+  {{- end }}
+spec:
+  backoffLimit: {{ $.Values.mysqlSchema.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "init-jobs.labels" $ | nindent 8 }}
+        app.kubernetes.io/component: mysql-schema
+        iam.service: {{ $svc.name }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: apply-schema
+          image: "{{ $.Values.mysqlSchema.image.repository }}:{{ $.Values.mysqlSchema.image.tag }}"
+          imagePullPolicy: {{ $.Values.mysqlSchema.image.pullPolicy }}
+          env:
+            - name: MYSQL_HOST
+              value: {{ $.Values.mysqlSchema.mysql.host | quote }}
+            - name: MYSQL_PORT
+              value: {{ $.Values.mysqlSchema.mysql.port | quote }}
+            - name: MYSQL_USER
+              value: {{ $.Values.mysqlSchema.mysql.user | quote }}
+            - name: MYSQL_PWD                                # mysql 客户端识别的环境变量
+              value: {{ $.Values.mysqlSchema.mysql.password | quote }}
+            - name: TARGET_DB
+              value: {{ $svc.database | quote }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -euo pipefail
+              echo "[init-mysql-schema:{{ $svc.name }}] waiting for mysql $MYSQL_HOST:$MYSQL_PORT ..."
+              # 简易 readiness 等待（最长 120s）
+              for i in $(seq 1 60); do
+                if mysqladmin ping -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" --silent; then
+                  echo "mysql ready."
+                  break
+                fi
+                sleep 2
+              done
+
+              echo "[init-mysql-schema:{{ $svc.name }}] ensuring database $TARGET_DB exists ..."
+              mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -e \
+                "CREATE DATABASE IF NOT EXISTS \`$TARGET_DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+
+              echo "[init-mysql-schema:{{ $svc.name }}] applying DDL files (sorted) ..."
+              for f in $(ls /ddl/*.sql | sort); do
+                echo "  -> $f"
+                mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" "$TARGET_DB" < "$f"
+              done
+              echo "[init-mysql-schema:{{ $svc.name }}] done."
+          volumeMounts:
+            - name: ddl
+              mountPath: /ddl
+      volumes:
+        - name: ddl
+          configMap:
+            name: {{ include "init-jobs.mysqlSchemaName" (dict "service" $svc.name) }}
+{{- end }}
+{{- end }}

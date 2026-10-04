@@ -1,0 +1,53 @@
+basePath: /api
+host: 127.0.0.1:8000
+info:
+  contact: {}
+  description: |-
+    iam-hello 服务接口文档（脚手架示例）。
+    仅在 config 中 enable_swagger=true 时暴露 /swagger/*any。
+  title: iam-hello API
+  version: "1.0"
+paths:
+  /authn/supportTypes:
+    get:
+      description: 返回当前服务内置支持的认证方式（password / sms / oauth2 等）。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 包含 types 数组，每项含 code / name / description
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 支持的认证方式列表
+      tags:
+      - authn
+  /authz/supportTypes:
+    get:
+      description: 返回当前服务内置支持的授权方式（rbac / abac / acl / rebac 等）。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 包含 types 数组，每项含 code / name / description
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 支持的授权方式列表
+      tags:
+      - authz
+schemes:
+- http
+swagger: "2.0"

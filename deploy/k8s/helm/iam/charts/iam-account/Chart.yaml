@@ -1,0 +1,10 @@
+apiVersion: v2
+name: iam-account
+description: |
+  IAM Account service.
+  Manages user registry (personal / organization accounts), memberships,
+  organization tree, groups and credentials. See docs/backend/iam-account-design.md
+  for the full design.
+type: application
+version: 0.1.0
+appVersion: "20260801"

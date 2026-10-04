@@ -1,0 +1,14 @@
+# 排除后端构建产物 / 日志 / IDE 元数据 / 前端 node_modules（前端构建时会重新 npm ci）
+apps/**/log/
+apps/**/*.log
+apps/frontend/**/node_modules/
+apps/frontend/**/dist/
+old_project/
+.tmp/
+.idea/
+.git/
+.gitignore
+docs/
+deploy/
+dockerfile/
+README.md

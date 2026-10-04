@@ -1,0 +1,9 @@
+apiVersion: v2
+name: iam-front
+description: |
+  IAM front-end (React + TypeScript + AntD, served by nginx).
+  Serves the built SPA and reverse-proxies /api/** to the iam-account
+  backend service.
+type: application
+version: 0.1.0
+appVersion: "20260801"
